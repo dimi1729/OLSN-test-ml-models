@@ -4,7 +4,39 @@ import random
 import polars as pl
 
 
-def generate_test_train_split(train_fraction: float): ...
+def generate_test_train_split(
+    df: pl.DataFrame, train_fraction: float, val_fraction: float, test_fraction: float
+) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    """
+    Split the dataframe into train, validation, and test sets based on subject labels.
+    Will remove label column after splitting
+
+    df should be the raw EMG-data csv, fractions should add to 1
+    """
+    assert abs(train_fraction + val_fraction + test_fraction - 1.0) < 1e-9, (
+        "Fractions must sum to 1.0"
+    )
+
+    unique_labels = df["label"].unique().to_list()
+    random.shuffle(unique_labels)
+
+    n_labels = len(unique_labels)
+    n_train = int(n_labels * train_fraction)
+    n_val = int(n_labels * val_fraction)
+
+    train_labels = unique_labels[:n_train]
+    val_labels = unique_labels[n_train : n_train + n_val]
+    test_labels = unique_labels[n_train + n_val :]
+
+    train_df = df.filter(pl.col("label").is_in(train_labels))
+    val_df = df.filter(pl.col("label").is_in(val_labels))
+    test_df = df.filter(pl.col("label").is_in(test_labels))
+
+    train_df = train_df.drop("label")
+    val_df = val_df.drop("label")
+    test_df = test_df.drop("label")
+
+    return train_df, val_df, test_df
 
 
 def generate_time_series_for_one_result(
