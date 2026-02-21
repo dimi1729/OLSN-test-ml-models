@@ -11,7 +11,9 @@ def generate_time_series_for_one_result(
     data: pl.DataFrame, time_interval: int
 ) -> tuple[pl.DataFrame, int]:
     """
-    Basically you input the df for the training data, and time window (in ms)
+    Basically you input the df for the training data, and time window (in ms).
+    Since the rows are not exactly spaced by 1ms (there are some gaps) but they are
+    approximate, just assume each row is 1ms.
     Each class has about 3,000 ms of continuous data (according to txt description).
     If you do longer than what exists, then you will get an error.
 
@@ -23,24 +25,24 @@ def generate_time_series_for_one_result(
 
     class_data = data.filter(pl.col("class") == selected_class)
 
-    min_time: int = class_data["time"].min()
-    max_time: int = class_data["time"].max()
+    num_rows_available = len(class_data)
 
-    if (max_time - min_time) < time_interval:
+    if num_rows_available < time_interval:
         raise ValueError(
-            f"Time interval {time_interval}ms is longer than available data "
-            f"({max_time - min_time}ms) for class {selected_class}"
+            f"Requested {time_interval} rows but only {num_rows_available} rows "
+            f"available for class {selected_class}"
         )
 
-    max_start_time = max_time - time_interval
-    start_time = random.uniform(min_time, max_start_time)
-    end_time = start_time + time_interval
+    # Pick a random starting index
+    max_start_index = num_rows_available - time_interval
+    start_index = random.randint(0, max_start_index)
 
-    time_series = class_data.filter(
-        (pl.col("time") >= start_time) & (pl.col("time") <= end_time)
-    )
+    time_series = class_data.slice(start_index, time_interval)
 
     time_series = time_series.drop("class")
+    time_series = time_series.drop("time")
+
+    assert time_series.shape == (time_interval, 8), f"Shape is {time_series.shape}"
 
     return (time_series, int(selected_class))
 

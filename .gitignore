@@ -1,3 +1,4 @@
 .venv/
 .zed/
 *.csv
+__pycache__/
