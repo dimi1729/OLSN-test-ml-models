@@ -2,3 +2,4 @@
 .zed/
 *.csv
 __pycache__/
+wandb/
