@@ -18,10 +18,14 @@ To get uv, please refer to https://docs.astral.sh/uv/getting-started/installatio
 
 In order to log our runs, we are using wandb. For documentation and making an account, go to https://docs.wandb.ai/models/models_quickstart#sign-up-and-create-an-api-key. The first time you run main, you will be promped to create an account or use an existing one. The easiest thing to do is create an account at the link, select use an existing account, and then paste your API key. 
 
+## Runs
+
+Once all the setup is done, the code can be run with just `uv run main.py`. Additionally options for training are available, and can be seen in `utils/arg_parser.py`. The recommended way to make runs is to make run files (examples can be seen in `example_runs`) with different names. You can store them in a `runs` directory (in the .gitignore) so that they remain local.
+
 ## TODOs
 
 There are many things that still need to be done for this project. Here is a list for those that want to contribute but do not know where to get started:
  - Improving the CNN: The CNN currently only gets about 50% accuracy on the dataset after 100 epochs, so performance needs to be improved significantly.
  - Data cleaning. Since there is a lot of noise and redundancy in the data since it is being sampled every 1ms, I think performance can be drastically improved by doing some kind of low pass filter before inputting to the CNN
  - Actual torch Dataloader and Dataset: Right now I just made some functions but ideally we change this to actual torch dataloaders
- - Random Forest: So far, we have a CNN, but we also plan on
+ - Random Forest or MLP: So far, we have a CNN, but we also plan on testing on other models.

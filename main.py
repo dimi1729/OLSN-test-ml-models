@@ -9,9 +9,13 @@ from data.process_data import (
     generate_test_train_split,
     generate_time_series_for_one_result,
 )
-from utils.config import CONFIG, PROJECT_NAME
+from utils.arg_parser import parser
+from utils.config import update_config
 
 if __name__ == "__main__":
+    args = parser.parse_args()
+    CONFIG = update_config(args)
+
     time_interval = 1024
     df = pl.read_csv("data/datasets/EMG-data.csv")
     train_df, val_df, test_df = generate_test_train_split(df, 0.7, 0.15, 0.15)
@@ -21,7 +25,9 @@ if __name__ == "__main__":
 
     # Train model
     wandb.login()
-    with wandb.init(project=PROJECT_NAME, config=CONFIG, name="test2") as run:
+    with wandb.init(
+        project=CONFIG["project_name"], config=CONFIG, name=CONFIG["run_name"]
+    ) as run:
         for epoch in range(CONFIG["epochs"]):
             run.log({"epoch": epoch})
 
