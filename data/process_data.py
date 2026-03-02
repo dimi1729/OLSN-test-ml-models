@@ -3,6 +3,32 @@ import random
 
 import polars as pl
 
+from utils.config import EMGDataset
+
+
+def create_data_df(path: str, dataset: EMGDataset) -> pl.DataFrame:
+    if dataset == EMGDataset.kaggle:
+        assert os.path.isfile(path), f"File not found: {path}"
+        return pl.read_csv(path)
+    elif dataset == EMGDataset.mendeley:
+        assert os.path.isdir(path), (
+            f"Mendeley data should be a directory of 40 csv files, instead got {path}"
+        )
+
+        # Get all CSV files in the directory
+        csv_files = [
+            os.path.join(path, f) for f in os.listdir(path) if f.endswith(".csv")
+        ]
+
+        if len(csv_files) == 0:
+            raise ValueError(f"No CSV files found in directory: {path}")
+
+        # Read all CSV files and concatenate them
+        dfs = [pl.read_csv(csv_file) for csv_file in csv_files]
+        combined_df = pl.concat(dfs, how="vertical")
+
+        return combined_df
+
 
 def generate_test_train_split(
     df: pl.DataFrame, train_fraction: float, val_fraction: float, test_fraction: float
@@ -80,8 +106,30 @@ def generate_time_series_for_one_result(
 
 
 if __name__ == "__main__":
-    emg_data_path = "/home/dimi1729/Documents/OLSN-test-ml-models/data/EMG-data.csv"
+    print("=" * 60)
+    print("Testing create_data_df function")
+    print("=" * 60)
 
-    df = pl.read_csv(emg_data_path)
-    df = df.drop("label")  # test train will drop label, for now im lazy
-    print(generate_time_series_for_one_result(df, 1000))
+    # Test with Kaggle dataset
+    emg_data_path = "/home/dimi1729/Documents/OLSN-test-ml-models/data/EMG-data.csv"
+    df = create_data_df(emg_data_path, EMGDataset.kaggle)
+    print(f"\nKaggle dataset loaded: {len(df)} rows, {df.shape[1]} columns")
+    print(f"Columns: {df.columns}")
+
+    # Test train/val/test split
+    print("\n" + "=" * 60)
+    print("Testing train/val/test split")
+    print("=" * 60)
+    train_df, val_df, test_df = generate_test_train_split(df, 0.7, 0.15, 0.15)
+
+    print(f"\nTrain set: {len(train_df)} rows")
+    print(f"Validation set: {len(val_df)} rows")
+    print(f"Test set: {len(test_df)} rows")
+
+    # Test time series generation
+    print("\n" + "=" * 60)
+    print("Testing time series generation")
+    print("=" * 60)
+    time_series, class_label = generate_time_series_for_one_result(train_df, 1000)
+    print(f"\nGenerated time series: shape {time_series.shape}, class {class_label}")
+    print(time_series.head(5))

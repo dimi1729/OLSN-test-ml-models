@@ -1,5 +1,7 @@
 .venv/
 .zed/
-*.csv
 __pycache__/
 wandb/
+
+
+datasets/

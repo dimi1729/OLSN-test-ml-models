@@ -13,7 +13,7 @@ from utils.config import CONFIG, PROJECT_NAME
 
 if __name__ == "__main__":
     time_interval = 1024
-    df = pl.read_csv("data/EMG-data.csv")
+    df = pl.read_csv("data/datasets/EMG-data.csv")
     train_df, val_df, test_df = generate_test_train_split(df, 0.7, 0.15, 0.15)
 
     model = CNN(time_interval=time_interval)
