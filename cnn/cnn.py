@@ -7,8 +7,8 @@ class CNN(nn.Module):
     def __init__(
         self,
         time_interval: int,
-        num_channels: int = 8,
-        num_classes: int = 8,
+        num_channels: int,
+        num_classes: int,
     ):
         """
         Time interval is in ms, should be the same used in the data generation. Ideally use

@@ -31,7 +31,10 @@ def create_data_df(path: str, dataset: EMGDataset) -> pl.DataFrame:
 
 
 def generate_test_train_split(
-    df: pl.DataFrame, train_fraction: float, val_fraction: float, test_fraction: float
+    df: pl.DataFrame,
+    train_fraction: float,
+    val_fraction: float,
+    test_fraction: float,
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """
     Split the dataframe into train, validation, and test sets based on subject labels.
@@ -66,7 +69,11 @@ def generate_test_train_split(
 
 
 def generate_time_series_for_one_result(
-    data: pl.DataFrame, time_interval: int
+    data: pl.DataFrame,
+    time_interval: int,
+    good_classes: list,
+    num_channels: int,
+    class_to_idx: dict[int, int],
 ) -> tuple[pl.DataFrame, int]:
     """
     Basically you input the df for the training data, and time window (in ms).
@@ -76,9 +83,23 @@ def generate_time_series_for_one_result(
     If you do longer than what exists, then you will get an error.
 
     The output is a consecutive amount of data, all corresponding to the same output.
-    Since the class is constant, it is returned seperately as an int
+    Since the class is constant, it is returned separately as an int.
+
+    Args:
+        data: DataFrame containing the EMG data
+        time_interval: Number of time steps to sample
+        good_classes: List of valid class labels to sample from
+        num_channels: Expected number of EMG channels
+        class_to_idx: Mapping from original class labels to model indices [0, num_classes-1]
+
+    Returns:
+        Tuple of (time_series DataFrame, remapped class index for model)
     """
     unique_classes = data["class"].unique().to_list()
+    assert len(set(unique_classes).intersection(set(good_classes))) >= 2, (
+        f"Less than 2 classes between good classes {good_classes} and classes in dataset {unique_classes}"
+    )
+    unique_classes = list(set(unique_classes).intersection(set(good_classes)))
     selected_class = random.choice(unique_classes)
 
     class_data = data.filter(pl.col("class") == selected_class)
@@ -100,9 +121,14 @@ def generate_time_series_for_one_result(
     time_series = time_series.drop("class")
     time_series = time_series.drop("time")
 
-    assert time_series.shape == (time_interval, 8), f"Shape is {time_series.shape}"
+    assert time_series.shape == (time_interval, num_channels), (
+        f"Shape is {time_series.shape}, expected ({time_interval}, {num_channels})"
+    )
 
-    return (time_series, int(selected_class))
+    # Remap the class label to model index (0 to num_classes-1)
+    remapped_class = class_to_idx[selected_class]
+
+    return (time_series, remapped_class)
 
 
 if __name__ == "__main__":

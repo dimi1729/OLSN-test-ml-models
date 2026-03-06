@@ -38,3 +38,8 @@ parser.add_argument(
     meanwhile the mendeley dataset refers to this one: https://data.mendeley.com/datasets/ckwc76xr2z/2
     Note that as of now the mendeley dataset has not been fully implemented""",
 )
+parser.add_argument(
+    "--no-wandb",
+    action="store_true",
+    help="Disable wandb logging mostly for debugging or quick testing",
+)
