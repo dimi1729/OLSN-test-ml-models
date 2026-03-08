@@ -40,13 +40,26 @@ DATASET_CLASS_CONFIG: dict[EMGDataset, dict] = {
             "ulnar deviations",
             "extended palm",
         ],
+        "path": "data/datasets/EMG-data.csv",
     },
     EMGDataset.mendeley: {
-        # TODO: implement
-        "num_channels": 0,
-        "good_classes": [],
-        "class_to_idx": {},
-        "idx_to_class": {},
+        "num_channels": 4,
+        "good_classes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],  # 10 hand position classes
+        "class_to_idx": {i: i for i in range(0, 10)},
+        "idx_to_class": {i: i for i in range(0, 10)},
+        "class_names": [
+            "Palm down",
+            "Extension",
+            "Flexion",
+            "Ulnar deviation",
+            "Radial deviation",
+            "Grip",
+            "Abduction of all fingers",
+            "Adduction of all fingers",
+            "Supination",
+            "Pronation",
+        ],
+        "path": "data/datasets/mendeley",
     },
 }
 
@@ -56,6 +69,7 @@ DEFAULT_CONFIG = {
     "lr": 0.001,
     "batch_size": 16,
     "epochs": 1000,
+    "time_interval": 1024,  # in ms
     "train_samples": 128,
     "val_samples": 16,
     "dataset": EMGDataset.kaggle,
@@ -71,6 +85,7 @@ def update_config(args: Namespace):
     CONFIG["lr"] = args.lr
     CONFIG["batch_size"] = args.batch_size
     CONFIG["epochs"] = args.epochs
+    CONFIG["time_interval"] = args.time_interval
     CONFIG["train_samples"] = args.train_samples
     CONFIG["val_samples"] = args.val_samples
     CONFIG["use_wandb"] = not args.no_wandb

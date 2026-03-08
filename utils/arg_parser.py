@@ -17,6 +17,12 @@ parser.add_argument(
     "--epochs", type=int, default=1000, help="Number of epochs to train"
 )
 parser.add_argument(
+    "--time_interval",
+    type=int,
+    default=1024,
+    help="How long for time window to be to predict position (in ms)",
+)
+parser.add_argument(
     "--train_samples",
     type=int,
     default=128,
@@ -39,7 +45,7 @@ parser.add_argument(
     Note that as of now the mendeley dataset has not been fully implemented""",
 )
 parser.add_argument(
-    "--no-wandb",
+    "--no_wandb",
     action="store_true",
     help="Disable wandb logging mostly for debugging or quick testing",
 )

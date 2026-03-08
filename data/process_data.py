@@ -280,7 +280,8 @@ def generate_time_series_for_one_result(
     time_series = class_data.slice(start_index, time_interval)
 
     time_series = time_series.drop("class")
-    time_series = time_series.drop("time")
+    if "time" in time_series.columns:
+        time_series = time_series.drop("time")
 
     assert time_series.shape == (time_interval, num_channels), (
         f"Shape is {time_series.shape}, expected ({time_interval}, {num_channels})"

@@ -6,6 +6,7 @@ import wandb
 from cnn.cnn import CNN
 from cnn.loss import loss
 from data.process_data import (
+    create_data_df,
     generate_test_train_split,
     generate_time_series_for_one_result,
 )
@@ -16,12 +17,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     CONFIG = update_config(args)
 
-    time_interval = 1024
-    df = pl.read_csv("data/datasets/EMG-data.csv")
+    df = create_data_df(CONFIG["dataset_config"]["path"], CONFIG["dataset"])
     train_df, val_df, test_df = generate_test_train_split(df, 0.7, 0.15, 0.15)
 
     model = CNN(
-        time_interval=time_interval,
+        time_interval=CONFIG["time_interval"],
         num_channels=CONFIG["dataset_config"]["num_channels"],
         num_classes=len(CONFIG["dataset_config"]["good_classes"]),
     )
@@ -45,7 +45,7 @@ if __name__ == "__main__":
             training_data.append(
                 generate_time_series_for_one_result(
                     train_df,
-                    time_interval,
+                    CONFIG["time_interval"],
                     CONFIG["dataset_config"]["good_classes"],
                     CONFIG["dataset_config"]["num_channels"],
                     CONFIG["dataset_config"]["class_to_idx"],
@@ -98,7 +98,7 @@ if __name__ == "__main__":
             val_data.append(
                 generate_time_series_for_one_result(
                     val_df,
-                    time_interval,
+                    CONFIG["time_interval"],
                     CONFIG["dataset_config"]["good_classes"],
                     CONFIG["dataset_config"]["num_channels"],
                     CONFIG["dataset_config"]["class_to_idx"],
