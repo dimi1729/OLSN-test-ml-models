@@ -8,7 +8,9 @@ To use this repository, you will have to download the data, set up an environmen
 
 ### Data setup
 
-To download the data, go to https://www.kaggle.com/datasets/sojanprajapati/emg-signal-for-gesture-recognition/data and download the csv file. Place it in the data/ directory. The EMG-data_description.txt file describes what the data represents, and more information can be found at the Kaggle link
+To download the  "Kaggle" dataset, go to https://www.kaggle.com/datasets/sojanprajapati/emg-signal-for-gesture-recognition/data and download the csv file. Place it in the data/ directory. The EMG-data_description.txt file describes what the data represents, and more information can be found at the Kaggle link
+
+To download the "Mendeley" dataset, go to https://data.mendeley.com/datasets/ckwc76xr2z/2 and in the file system go to filtered > csv and then download all of the csvs there (you do not actually need to download all of them for the code to run, but since each file is a different participant, the train val test split will be done by num of files so make sure you get enough so that after the split you get at least one per class). Make sure to put all of the csvs (without renaming them) into the path data/datasets/mendeley in the project directory.
 
 ### uv setup
 
