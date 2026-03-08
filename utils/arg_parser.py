@@ -49,3 +49,11 @@ parser.add_argument(
     action="store_true",
     help="Disable wandb logging mostly for debugging or quick testing",
 )
+parser.add_argument(
+    "--split",
+    type=float,
+    nargs=3,
+    default=[0.7, 0.15, 0.15],
+    metavar=("TRAIN", "VAL", "TEST"),
+    help="Train/validation/test split proportions (must sum to 1.0). Default: 0.7 0.15 0.15",
+)

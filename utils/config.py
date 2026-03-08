@@ -75,6 +75,7 @@ DEFAULT_CONFIG = {
     "dataset": EMGDataset.kaggle,
     "dataset_config": DATASET_CLASS_CONFIG[EMGDataset.kaggle].copy(),
     "use_wandb": True,
+    "split": [0.7, 0.15, 0.15],  # train, val, test proportions
 }
 
 
@@ -89,6 +90,15 @@ def update_config(args: Namespace):
     CONFIG["train_samples"] = args.train_samples
     CONFIG["val_samples"] = args.val_samples
     CONFIG["use_wandb"] = not args.no_wandb
+
+    # Validate and set split proportions
+    split = args.split
+    assert len(split) == 3, "Split must have exactly 3 values: train, val, test"
+    assert abs(sum(split) - 1.0) < 1e-6, (
+        f"Split proportions must sum to 1.0, got {sum(split)}"
+    )
+    assert all(0 <= s <= 1 for s in split), "Split proportions must be between 0 and 1"
+    CONFIG["split"] = split
 
     if args.dataset == "kaggle":
         CONFIG["dataset"] = EMGDataset.kaggle

@@ -18,7 +18,9 @@ if __name__ == "__main__":
     CONFIG = update_config(args)
 
     df = create_data_df(CONFIG["dataset_config"]["path"], CONFIG["dataset"])
-    train_df, val_df, test_df = generate_test_train_split(df, 0.7, 0.15, 0.15)
+    train_df, val_df, test_df = generate_test_train_split(
+        df, CONFIG["split"][0], CONFIG["split"][1], CONFIG["split"][2]
+    )
 
     model = CNN(
         time_interval=CONFIG["time_interval"],
