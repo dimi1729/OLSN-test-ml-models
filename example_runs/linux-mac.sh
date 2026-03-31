@@ -9,6 +9,9 @@
 # Single GPU/CPU run
 uv run main.py --run_name="example_run" --epochs=500 --val_samples=16
 
+# Single GPU/CPU run with custom num_workers (default is CPU count)
+# uv run main.py --run_name="example_run" --epochs=500 --val_samples=16 --num_workers=4
+
 # Multi-GPU run with Distributed Data Parallel (DDP)
 # Replace <num_gpus> with the number of GPUs you want to use (e.g., 2, 4, 8)
-# uv run torchrun --nproc_per_node=<num_gpus> main.py --run_name="example_run_ddp" --epochs=500 --val_samples=16
+# uv run torchrun --nproc_per_node=<num_gpus> main.py --run_name="example_run_ddp" --epochs=500 --val_samples=16 --num_workers=2

@@ -57,3 +57,9 @@ parser.add_argument(
     metavar=("TRAIN", "VAL", "TEST"),
     help="Train/validation/test split proportions (must sum to 1.0). Default: 0.7 0.15 0.15",
 )
+parser.add_argument(
+    "--num_workers",
+    type=int,
+    default=None,
+    help="Number of worker processes for data loading. Default: number of CPUs available",
+)

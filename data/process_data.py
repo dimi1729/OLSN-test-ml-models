@@ -1,7 +1,10 @@
 import os
 import random
 
+import numpy as np
 import polars as pl
+import torch
+from torch.utils.data import Dataset
 
 from utils.config import EMGDataset
 
@@ -291,6 +294,105 @@ def generate_time_series_for_one_result(
     remapped_class = class_to_idx[selected_class]
 
     return (time_series, remapped_class)
+
+
+class EMGTimeSeriesDataset(Dataset):
+    """
+    PyTorch Dataset for EMG data that efficiently handles time series sampling.
+
+    This class pre-computes valid sampling ranges for each class to avoid
+    redundant filtering operations during training.
+    """
+
+    def __init__(
+        self,
+        df: pl.DataFrame,
+        time_interval: int,
+        good_classes: list[int],
+        num_channels: int,
+        class_to_idx: dict[int, int],
+        num_samples: int,
+    ):
+        """
+        Initialize the EMG dataset.
+
+        Args:
+            df: Polars DataFrame with EMG data and 'class' column
+            time_interval: Number of time steps per sample
+            good_classes: List of valid class labels to sample from
+            num_channels: Expected number of EMG channels
+            class_to_idx: Mapping from original class labels to model indices
+            num_samples: Number of samples to generate per epoch
+        """
+        self.df = df
+        self.time_interval = time_interval
+        self.good_classes = good_classes
+        self.num_channels = num_channels
+        self.class_to_idx = class_to_idx
+        self.num_samples = num_samples
+
+        # Pre-compute class indices for efficient sampling
+        # Convert to NumPy for multiprocessing compatibility
+        self.class_ranges = {}
+        for class_label in good_classes:
+            class_data = df.filter(pl.col("class") == class_label)
+            num_rows = len(class_data)
+            if num_rows >= time_interval:
+                # Drop non-channel columns and convert to NumPy array
+                columns_to_drop = ['class']
+                if 'time' in class_data.columns:
+                    columns_to_drop.append('time')
+                if 'label' in class_data.columns:
+                    columns_to_drop.append('label')
+
+                class_data_clean = class_data.drop(columns_to_drop)
+
+                # Store as NumPy array for multiprocessing compatibility
+                self.class_ranges[class_label] = {
+                    'data': class_data_clean.to_numpy(),  # Convert to NumPy
+                    'max_start_idx': num_rows - time_interval,
+                    'num_rows': num_rows
+                }
+
+        # Verify we have at least 2 valid classes
+        assert len(self.class_ranges) >= 2, (
+            f"Need at least 2 classes with sufficient data. "
+            f"Found {len(self.class_ranges)} valid classes out of {len(good_classes)}"
+        )
+
+        self.valid_classes = list(self.class_ranges.keys())
+
+    def __len__(self) -> int:
+        """Return the number of samples per epoch."""
+        return self.num_samples
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
+        """
+        Generate a random time series sample.
+
+        Args:
+            idx: Index (not used for random sampling, but required by PyTorch)
+
+        Returns:
+            Tuple of (time_series tensor, class index)
+        """
+        # Randomly select a class
+        selected_class = random.choice(self.valid_classes)
+        class_info = self.class_ranges[selected_class]
+
+        # Randomly select a starting index
+        start_idx = random.randint(0, class_info['max_start_idx'])
+
+        # Extract time series from NumPy array
+        time_series = class_info['data'][start_idx:start_idx + self.time_interval]
+
+        # Convert to tensor and transpose to (num_channels, time_interval)
+        tensor = torch.FloatTensor(time_series).T
+
+        # Get remapped class index
+        class_idx = self.class_to_idx[selected_class]
+
+        return tensor, class_idx
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import os
 from argparse import Namespace
 from enum import Enum
 
@@ -76,6 +77,7 @@ DEFAULT_CONFIG = {
     "dataset_config": DATASET_CLASS_CONFIG[EMGDataset.kaggle].copy(),
     "use_wandb": True,
     "split": [0.7, 0.15, 0.15],  # train, val, test proportions
+    "num_workers": os.cpu_count() or 1,  # Number of worker processes for data loading
 }
 
 
@@ -90,6 +92,7 @@ def update_config(args: Namespace):
     CONFIG["train_samples"] = args.train_samples
     CONFIG["val_samples"] = args.val_samples
     CONFIG["use_wandb"] = not args.no_wandb
+    CONFIG["num_workers"] = args.num_workers if args.num_workers is not None else (os.cpu_count() or 1)
 
     # Validate and set split proportions
     split = args.split

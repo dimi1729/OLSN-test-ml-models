@@ -6,7 +6,6 @@ import warnings
 
 @dataclass
 class DataDDP:
-    device: str
     rank: int = 0
     local_rank: int = 0
     world_size: int = 1
