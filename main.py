@@ -1,10 +1,12 @@
 import polars as pl
 import torch
 import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 import wandb
 from cnn.cnn import CNN
 from cnn.loss import loss
+from data.distributed_data_parallel import DataDDP
 from data.process_data import (
     create_data_df,
     generate_test_train_split,
@@ -17,6 +19,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     CONFIG = update_config(args)
 
+    # Initialize DDP
+    data_ddp = DataDDP(device="cpu")
+    ddp = data_ddp.init_ddp()
+
     df = create_data_df(CONFIG["dataset_config"]["path"], CONFIG["dataset"])
     train_df, val_df, test_df = generate_test_train_split(
         df, CONFIG["split"][0], CONFIG["split"][1], CONFIG["split"][2]
@@ -27,10 +33,16 @@ if __name__ == "__main__":
         num_channels=CONFIG["dataset_config"]["num_channels"],
         num_classes=len(CONFIG["dataset_config"]["good_classes"]),
     )
+    model = model.to(data_ddp.device)
+
+    # Wrap model with DDP if distributed training is enabled
+    if ddp:
+        model = DDP(model, device_ids=[data_ddp.ddp_local_rank])
+
     optimizer = optim.Adam(model.parameters(), lr=CONFIG["lr"])
 
-    # Train model
-    if CONFIG["use_wandb"]:
+    # Train model - only initialize wandb on master process
+    if CONFIG["use_wandb"] and data_ddp.master_process:
         wandb.login()
         run = wandb.init(
             project=CONFIG["project_name"], config=CONFIG, name=CONFIG["run_name"]
@@ -39,6 +51,7 @@ if __name__ == "__main__":
         run = None
 
     for epoch in range(CONFIG["epochs"]):
+        print(f"Epoch {epoch + 1}/{CONFIG['epochs']}")
         if run:
             run.log({"epoch": epoch})
 
@@ -64,10 +77,10 @@ if __name__ == "__main__":
         total = 0
 
         for batch in train_batches:
-            batch_labels = torch.tensor([result[1] for result in batch])
+            batch_labels = torch.tensor([result[1] for result in batch]).to(data_ddp.device)
             batch_inputs = torch.stack(
                 [torch.FloatTensor(result[0].to_numpy()).T for result in batch]
-            )
+            ).to(data_ddp.device)
 
             optimizer.zero_grad()
 
@@ -75,7 +88,9 @@ if __name__ == "__main__":
             loss_value = loss(outputs, batch_labels)
             loss_value.backward()
             optimizer.step()
-            print(f"Train loss: {loss_value.item()}")
+
+            if data_ddp.master_process:
+                print(f"Train loss: {loss_value.item()}")
             if run:
                 run.log({"train_loss": loss_value.item()})
             cum_loss += loss_value.item()
@@ -86,7 +101,7 @@ if __name__ == "__main__":
 
         avg_train_loss = cum_loss / len(train_batches)
         train_accuracy = correct / total
-        if run:
+        if run and data_ddp.master_process:
             run.log(
                 {
                     "train_loss_epoch": avg_train_loss,
@@ -118,10 +133,10 @@ if __name__ == "__main__":
 
         for val_batch in val_batches:
             with torch.no_grad():
-                val_batch_labels = torch.tensor([result[1] for result in val_batch])
+                val_batch_labels = torch.tensor([result[1] for result in val_batch]).to(data_ddp.device)
                 val_batch_inputs = torch.stack(
                     [torch.FloatTensor(result[0].to_numpy()).T for result in val_batch]
-                )
+                ).to(data_ddp.device)
 
                 val_outputs = model(val_batch_inputs)
                 val_loss = loss(val_outputs, val_batch_labels)
@@ -136,13 +151,17 @@ if __name__ == "__main__":
 
         avg_val_loss = cum_loss / len(val_batches)
         val_accuracy = correct / total
-        print(
-            f"Epoch {epoch + 1}, Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
-        )
-        if run:
+        if data_ddp.master_process:
+            print(
+                f"Epoch {epoch + 1}, Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
+            )
+        if run and data_ddp.master_process:
             run.log(
                 {"val_loss_epoch": avg_val_loss, "val_accuracy_epoch": val_accuracy}
             )
 
-    if run:
+    if run and data_ddp.master_process:
         run.finish()
+
+    # Cleanup DDP
+    data_ddp.cleanup_ddp(ddp)
