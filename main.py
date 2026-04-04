@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 import wandb
 from typing import Any
+import os
 
 from cnn.cnn import CNN
 from cnn.loss import loss
@@ -99,6 +100,11 @@ if __name__ == "__main__":
     )
 
     print("finished making dataloaders")
+
+    # Create directory for saving models
+    if data_ddp.master_process:
+        os.makedirs(CONFIG["save_path"], exist_ok=True)
+
     for epoch in range(CONFIG["epochs"]):
         if run:
             run.log({"epoch": epoch})
@@ -124,8 +130,8 @@ if __name__ == "__main__":
             loss_value.backward()
             optimizer.step()
 
-            if data_ddp.master_process:
-                print(f"Train loss: {loss_value.item()}")
+            # if data_ddp.master_process:
+            #     print(f"Train loss: {loss_value.item()}")
             if run:
                 run.log({"train_loss": loss_value.item()})
             cum_loss += loss_value.item()
@@ -168,14 +174,29 @@ if __name__ == "__main__":
 
         avg_val_loss = cum_loss / len(val_loader)
         val_accuracy = correct / total
-        if data_ddp.master_process:
-            print(
-                f"Epoch {epoch + 1}, Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
-            )
+        # if data_ddp.master_process:
+        #     print(
+        #         f"Epoch {epoch + 1}, Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
+        #     )
         if run and data_ddp.master_process:
             run.log(
                 {"val_loss_epoch": avg_val_loss, "val_accuracy_epoch": val_accuracy}
             )
+
+        # Save model every n epochs
+        if data_ddp.master_process and (epoch + 1) % CONFIG["save_n_epochs"] == 0:
+            model_to_save = model.module if ddp else model
+            checkpoint_path = f"{CONFIG["save_path"]}/{CONFIG["run_name"]}_{epoch + 1}.pt"
+            torch.save({
+                'epoch': epoch + 1,
+                'model_state_dict': model_to_save.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': avg_train_loss,
+                'val_loss': avg_val_loss,
+                'train_accuracy': train_accuracy,
+                'val_accuracy': val_accuracy,
+            }, checkpoint_path)
+            print(f"Saved model checkpoint to {checkpoint_path}")
 
     if run and data_ddp.master_process:
         run.finish()

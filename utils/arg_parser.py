@@ -9,7 +9,7 @@ parser.add_argument(
     stored in this project in wandb, change the run name between runs""",
 )
 parser.add_argument(
-    "--run_name", type=str, default="test-run", help="Run name in wandb"
+    "--run_name", type=str, default="test-run", help="Run name in wandb, also where ckpts will save"
 )
 parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
 parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
@@ -62,4 +62,16 @@ parser.add_argument(
     type=int,
     default=None,
     help="Number of worker processes for data loading. Default: number of CPUs available",
+)
+parser.add_argument(
+    "--save_n_epochs",
+    type=int,
+    default=10,
+    help="Save model checkpoint every n epochs. Default: 10. To not save, set to 0",
+)
+parser.add_argument(
+    "--save_path",
+    type=str,
+    default="ckpts",
+    help="Directory path to save model checkpoints. Default: ckpts"
 )

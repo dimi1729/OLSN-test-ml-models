@@ -78,6 +78,8 @@ DEFAULT_CONFIG = {
     "use_wandb": True,
     "split": [0.7, 0.15, 0.15],  # train, val, test proportions
     "num_workers": os.cpu_count() or 1,  # Number of worker processes for data loading
+    "save_n_epochs": 10,
+    "save_path": "ckpts",
 }
 
 
@@ -93,6 +95,8 @@ def update_config(args: Namespace):
     CONFIG["val_samples"] = args.val_samples
     CONFIG["use_wandb"] = not args.no_wandb
     CONFIG["num_workers"] = args.num_workers if args.num_workers is not None else (os.cpu_count() or 1)
+    CONFIG["save_n_epochs"] = args.save_n_epochs if args.save_n_epochs > 0 else float('inf')
+    CONFIG["save_path"] = args.save_path
 
     # Validate and set split proportions
     split = args.split
