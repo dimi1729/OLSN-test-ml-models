@@ -8,13 +8,22 @@ from torch.utils.data import Dataset
 
 from utils.config import EMGDataset
 
+# Raw Mendeley CSVs are 2000 Hz. Set target rate here (must evenly divide 2000),
+# e.g. 1000, 500, 400, 250, 200.
+MENDELEY_SOURCE_HZ = 2000
+MENDELEY_TARGET_HZ = 1000
+assert MENDELEY_SOURCE_HZ % MENDELEY_TARGET_HZ == 0, (
+    "MENDELEY_TARGET_HZ must evenly divide MENDELEY_SOURCE_HZ for integer stride downsampling"
+)
+MENDELEY_DOWNSAMPLE_STRIDE = MENDELEY_SOURCE_HZ // MENDELEY_TARGET_HZ
+
 
 def classify_mendeley_label_group(df: pl.DataFrame) -> pl.DataFrame:
     """
     Classify a single label group (subject) of Mendeley data by adding a "class" column.
 
-    This processes one subject's data (approximately 1,280,000 rows) and adds class labels
-    based on the timing of hand position cycles.
+    This processes one subject's continuous recording and adds class labels based on the
+    timing of hand position cycles.
 
     Basically there should be 5 cycles of 10 different hand positions
 
@@ -23,8 +32,8 @@ def classify_mendeley_label_group(df: pl.DataFrame) -> pl.DataFrame:
     Theres also 30 seconds between each cycle (not flanking beginning and end)
     so 640 seconds total (104 * 5 + 30 * 4).
 
-    These are measured at 2000Hz (2 samples/ms), but we downsample to 1000Hz (1 sample/ms)
-    so there should be 640,000 rows per label after downsampling.
+    CSV data is acquired at MENDELEY_SOURCE_HZ; holding/transition durations in samples use
+    MENDELEY_TARGET_HZ after downsampling in process_mendeley_file.
 
     Class labels correspond to hand positions:
         0: Palm down
@@ -46,24 +55,11 @@ def classify_mendeley_label_group(df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         DataFrame with added "class" column
     """
-    # Assert approximately 640,000 rows after downsampling (allow 5% tolerance)
-    # Original was 1,280,000 at 2000Hz, now 640,000 at 1000Hz
-    expected_rows = 640_000
-    tolerance = 0.01
-    min_rows = int(expected_rows * (1 - tolerance))
-    max_rows = int(expected_rows * (1 + tolerance))
-    actual_rows = len(df)
-
-    assert min_rows <= actual_rows <= max_rows, (
-        f"Expected approximately {expected_rows:,} rows (+/-{tolerance * 100}%), "
-        f"but got {actual_rows:,} rows for label {df['label'][0]}"
-    )
-
-    # Timing constants (all in samples, where 1ms = 1 sample after downsampling)
+    hz = MENDELEY_TARGET_HZ
     samples_per_ms = 1
-    holding_duration = 6 * 1000 * samples_per_ms  # 6 seconds = 6,000 samples
-    transition_duration = 4 * 1000 * samples_per_ms  # 4 seconds = 4,000 samples
-    between_cycle_duration = 30 * 1000 * samples_per_ms  # 30 seconds = 30,000 samples
+    holding_duration = 6 * hz * samples_per_ms
+    transition_duration = 4 * hz * samples_per_ms
+    between_cycle_duration = 30 * hz * samples_per_ms
 
     # One cycle: initial transition + 10 positions (each with holding + transition)
     # But last position in cycle has no transition (goes to between-cycle rest)
@@ -135,7 +131,8 @@ def process_mendeley_file(filepath: str) -> pl.DataFrame:
     """
     Process a single Mendeley CSV file:
     1. Read the CSV
-    2. Downsample from 2000Hz to 1000Hz (take every other row)
+    2. Downsample from MENDELEY_SOURCE_HZ to MENDELEY_TARGET_HZ (keep every
+       MENDELEY_DOWNSAMPLE_STRIDE-th row)
     3. Rename columns to channel1, channel2, etc.
     4. Extract label from filename (e.g., "1_filtered.csv" -> label=1)
     5. Add label column to dataframe
@@ -144,12 +141,11 @@ def process_mendeley_file(filepath: str) -> pl.DataFrame:
         filepath: Full path to the CSV file
 
     Returns:
-        DataFrame with renamed channels and label column, downsampled to 1000Hz
+        DataFrame with renamed channels and label column, downsampled to MENDELEY_TARGET_HZ
     """
     df = pl.read_csv(filepath)
 
-    # Downsample from 2000Hz to 1000Hz by taking every other sample
-    df = df.filter(pl.int_range(pl.len()).mod(2) == 0)
+    df = df.filter(pl.int_range(pl.len()).mod(MENDELEY_DOWNSAMPLE_STRIDE) == 0)
 
     # Rename columns to channel1, channel2, etc.
     num_columns = len(df.columns)
