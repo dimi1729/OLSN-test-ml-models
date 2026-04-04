@@ -5,7 +5,8 @@ from enum import Enum
 
 class EMGDataset(Enum):
     kaggle = 1
-    mendeley = 2  # TODO: mendeley dataset not yet implemented fully
+    mendeley = 2
+    olsn = 3
 
 
 DATASET_CLASS_CONFIG: dict[EMGDataset, dict] = {
@@ -62,6 +63,25 @@ DATASET_CLASS_CONFIG: dict[EMGDataset, dict] = {
         ],
         "path": "data/datasets/mendeley",
     },
+    EMGDataset.olsn: {
+        "num_channels": 4,
+        "good_classes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],  # 10 hand position classes
+        "class_to_idx": {i: i for i in range(0, 10)},
+        "idx_to_class": {i: i for i in range(0, 10)},
+        "class_names": [
+            "Palm down",
+            "Extension",
+            "Flexion",
+            "Ulnar deviation",
+            "Radial deviation",
+            "Grip",
+            "Abduction of all fingers",
+            "Adduction of all fingers",
+            "Supination",
+            "Pronation",
+        ],
+        "path": "data/datasets/olsn",
+    },
 }
 
 DEFAULT_CONFIG = {
@@ -83,8 +103,14 @@ DEFAULT_CONFIG = {
 }
 
 
-def update_config(args: Namespace):
+def update_config(mode: str, args: Namespace):
     CONFIG = DEFAULT_CONFIG.copy()
+
+    assert mode in ["train", "inference"]
+    if mode == "inference":
+        assert args.checkpoint_to_load is not None, "for inference you must provide --checkpoint_to_load"
+        CONFIG["checkpoint_to_load"] = args.checkpoint_to_load
+
     CONFIG["project_name"] = args.project_name
     CONFIG["run_name"] = args.run_name
     CONFIG["lr"] = args.lr
@@ -93,6 +119,7 @@ def update_config(args: Namespace):
     CONFIG["time_interval"] = args.time_interval
     CONFIG["train_samples"] = args.train_samples
     CONFIG["val_samples"] = args.val_samples
+    CONFIG["inference_samples"] = args.inference_samples
     CONFIG["use_wandb"] = not args.no_wandb
     CONFIG["num_workers"] = args.num_workers if args.num_workers is not None else (os.cpu_count() or 1)
     CONFIG["save_n_epochs"] = args.save_n_epochs if args.save_n_epochs > 0 else float('inf')

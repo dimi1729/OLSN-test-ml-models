@@ -7,7 +7,7 @@
 # run files in there and call the scripts from there
 
 # Single GPU/CPU run
-uv run main.py --run_name="example_run" --epochs=500 --val_samples=16
+uv run train.py --run_name="example_run" --epochs=500 --val_samples=16
 
 # Single GPU/CPU run with custom num_workers (default is CPU count)
 # uv run main.py --run_name="example_run" --epochs=500 --val_samples=16 --num_workers=4

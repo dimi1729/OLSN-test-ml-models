@@ -9,12 +9,12 @@ parser.add_argument(
     stored in this project in wandb, change the run name between runs""",
 )
 parser.add_argument(
-    "--run_name", type=str, default="test-run", help="Run name in wandb, also where ckpts will save"
+    "--run_name", type=str, default="test-run", help="Run name in wandb, also where ckpts will save. TRAINING ONLY"
 )
-parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+parser.add_argument("--lr", type=float, default=0.001, help="Learning rate, TRAINING ONLY")
 parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
 parser.add_argument(
-    "--epochs", type=int, default=1000, help="Number of epochs to train"
+    "--epochs", type=int, default=1000, help="Number of epochs to train, TRAINING ONLY"
 )
 parser.add_argument(
     "--time_interval",
@@ -26,13 +26,19 @@ parser.add_argument(
     "--train_samples",
     type=int,
     default=128,
-    help="Number of samples to train on per epoch",
+    help="Number of samples to train on per epoch, TRAINING ONLY",
 )
 parser.add_argument(
     "--val_samples",
     type=int,
     default=16,
-    help="Number of samples to validate on per epoch",
+    help="Number of samples to validate on per epoch. TRAINING ONLY",
+)
+parser.add_argument(
+    "--inference_samples",
+    type=int,
+    default=16,
+    help="Number of samples to do on inference total. INFERENCE ONLY"
 )
 parser.add_argument(
     "--dataset",
@@ -42,12 +48,13 @@ parser.add_argument(
     help="""Which dataset to use. The kaggle dataset refers to this dataset:
     https://www.kaggle.com/datasets/sojanprajapati/emg-signal-for-gesture-recognition/data
     meanwhile the mendeley dataset refers to this one: https://data.mendeley.com/datasets/ckwc76xr2z/2
-    Note that as of now the mendeley dataset has not been fully implemented""",
+    Note that as of now the mendeley dataset has not been fully implemented.
+    TRAINING ONLY""",
 )
 parser.add_argument(
     "--no_wandb",
     action="store_true",
-    help="Disable wandb logging mostly for debugging or quick testing",
+    help="Disable wandb logging mostly for debugging or quick testing, TRAINING ONLY",
 )
 parser.add_argument(
     "--split",
@@ -55,7 +62,7 @@ parser.add_argument(
     nargs=3,
     default=[0.7, 0.15, 0.15],
     metavar=("TRAIN", "VAL", "TEST"),
-    help="Train/validation/test split proportions (must sum to 1.0). Default: 0.7 0.15 0.15",
+    help="Train/validation/test split proportions (must sum to 1.0). Default: 0.7 0.15 0.15, TRAINING ONLY",
 )
 parser.add_argument(
     "--num_workers",
@@ -67,11 +74,17 @@ parser.add_argument(
     "--save_n_epochs",
     type=int,
     default=10,
-    help="Save model checkpoint every n epochs. Default: 10. To not save, set to 0",
+    help="Save model checkpoint every n epochs. Default: 10. To not save, set to 0. TRAINING ONLY",
 )
 parser.add_argument(
     "--save_path",
     type=str,
     default="ckpts",
-    help="Directory path to save model checkpoints. Default: ckpts"
+    help="Directory path to save model checkpoints. Default: ckpts. TRAINING ONLY"
+)
+parser.add_argument(
+    "--checkpoint_to_load",
+    type=str,
+    default=None,
+    help="Checkpoint to load from for INFERENCE ONLY. Required for inference"
 )

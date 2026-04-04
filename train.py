@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -5,7 +6,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 import wandb
 from typing import Any
-import os
 
 from cnn.cnn import CNN
 from cnn.loss import loss
@@ -20,7 +20,7 @@ from utils.config import update_config
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    CONFIG: dict[str, Any] = update_config(args)
+    CONFIG: dict[str, Any] = update_config("train", args)
 
     # Initialize DDP
     data_ddp = DataDDP()
